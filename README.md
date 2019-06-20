@@ -8,7 +8,7 @@ That other project seems to be centric on detecting the presence of noSQL inject
 ## Why only MongoDB and why is it not very efficient on large volumes of data?
 Because I initially made it for a CTF challenge. 
 
-However, I am open to supporting more DB backends, and make my code more efficient, I just may need some time to actually get down to doing it.
+However, I am open to supporting more DB backends, and making my code more efficient, I'd just need some time to actually get down to doing it.
 
 ## Installation
 As of now, Mongomap as 2 dependencies:
