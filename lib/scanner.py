@@ -4,6 +4,7 @@ import requests;
 import urllib;
 import urllib.parse;
 import copy;
+import json;
 
 from .tester import getTests;
 
@@ -63,7 +64,7 @@ class Scanner():
                 verbose("Skipping test " + testname);
         return successes;
 
-    def handleCSRF(self,data):
+    def handleCSRF(self,data): #To be changed whenever.
         session = requests.Session();
         if self.csrfToken == "":
             return session;
@@ -85,8 +86,12 @@ class Scanner():
                 data[param] = urllib.parse.quote(data[param]);
             strData = self.implodeData(data);
             req = session.get(self.url + "?" + strData,headers=self.headers,cookies=self.cookies,allow_redirects=False);
-        else:
+        elif self.method == "post":
             req = session.post(self.url,data,headers=self.headers,cookies=self.cookies,allow_redirects=False);
+        elif self.method == "json":
+            #print("DEBUG:",data);
+            req = session.post(self.url, json=data);
+        
         return req;
                 
     def check(self,req):
@@ -101,8 +106,6 @@ class Scanner():
                 return "text";
         return "none";
         
-        
-    
     def handleData(self):
         strData = self.data;
         if self.method == "get" and strData == "":
@@ -113,8 +116,10 @@ class Scanner():
             else:
                 self.explodeData(split[1]);
                 self.url = split[0];
-        else:
+        elif self.method == "post":
             self.explodeData(strData);
+        elif self.method == "json":
+            pass; #Already in the correct form.
         
         if "/" not in self.url.replace("://",""):
             bold("URL: " + self.url);
@@ -133,16 +138,21 @@ class Scanner():
         self.data = data;
 
     def implodeData(self,data):
+        if self.method == "json":
+            return json.dumps(data); #For printing purposes.
         stringData = "";
         for key in data:
             stringData += key + "=" + data[key] + "&";
         return stringData[:-1];
 
     def testConnection(self):
-        try:
+        #try:
             req = self.sendData(self.data);
-            self.textBaseline = req.text;
             self.status_baseline = req.status_code;
+            if str(req.status_code).startswith("4"):
+                failure("Website returned status code "+str(req.status_code)+"!");
+            
+            self.textBaseline = req.text;
             
             if str(req.status_code).startswith("3"):
                 if question("Redirect to " + req.url + " detected. Follow?"):
@@ -150,7 +160,7 @@ class Scanner():
                     return self.testConnection();
                     
             return True;
-        except Exception as err:
-            print(err);
-            return False;
+        #except Exception as err:
+            #print(err);
+            #return False;
         

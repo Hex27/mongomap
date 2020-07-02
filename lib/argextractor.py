@@ -11,12 +11,15 @@ from util.output import bold;
 from util.output import yellow;
 from .tester import getTests;
 
+import json;
+
 def showHelp():
     bold("Usage: mongomap -u [url] ...");
     plain("");
     plain("-u"+"\t\t"+"Refers to the URL of the target. Includes port and get parameters if you are using get requests.");
     plain("--method"+"\t"+"Set to either \"post\" or \"get\". By default, this will be set to \"get\"");
-    plain("--data"+"\t"+"If you are using post requests, use this option to specify post data");
+    plain("--data"+"\t"+"If you are using post or json requests, use this option to specify post data");
+    plain("--file"+"\t"+"Same as --data, but you specify a file containing the parameters instead.");
     plain("");
     bold("--Flexibility--");
     plain("--cookies"+"\t"+"Set cookies to send. Separate different cookies with &");
@@ -48,6 +51,9 @@ def showHelp():
     bold("mongomap -u http://192.168.1.321 --method post --data \"username=hi&password=letmein\"");
     bold("mongomap -u https://target.com:1231?foo=1 --cookies \"PHPSESSID=1242345234512345&ID=123\"");
     bold("mongomap -u http://10.10.10.123 --method post --data search=1 --headers \"Host: administrator1.friendzone.red; User-Agent: imlazytotypethis\"");
+    bold("mongomap -u http://152.104.10.55:20001/v1/account/login --method json --data {\\\"username\\\":\\\"admin\\\",\\\"password\\\":\\\"1\\\"}");
+    bold("mongomap -u http://175.104.10.55:20001/v1/account/login --method json --data {\\\"username\\\":{\\\"$ne\\\":\\\"1\\\"},\\\"password\\\":\\\"1\\\"}");
+    bold("mongomap -u http://112.104.10.55:20001/v1/account/login --method json --file params.txt");
     plain("");
     
 
@@ -86,7 +92,7 @@ def showTechniqueHelp(techniques):
     
 def extractArgs():
     flags = ["dump","help","h","v","techniques","ts"];
-    options = ["u","t","method","data","p","cookies","headers","maxbrute","maxthreads","ignorecheck","csrftoken","objectids"];
+    options = ["u","t","method","data","p","cookies","headers","maxbrute","maxthreads","ignorecheck","csrftoken","objectids","file"];
 
     parsed = {};
 
@@ -151,14 +157,27 @@ def initScanner(parsed):
     url = parsed["u"];
     method = "get";
     data = "";
+    if "file" in parsed:
+        f = open(parsed["file"],"r");
+        parsed["data"] = f.read();
+        f.close();
     if "method" in parsed:
-        if parsed["method"] == "post":
+        if parsed["method"] == "post" or parsed["method"] == "json":
             if "data" not in parsed:
-                failure("You must set the data option if you want to send post requests!");
+                failure("You must set the data option if you want to send post or json requests!");
                 sys.exit(1);
         method = parsed["method"];
+        if parsed["method"] == "json":
+            try:
+                data = json.loads(parsed["data"]);
+            except:
+                failure(parsed["data"]);
+                failure("The data provided was not json, but mongomap was told to send json data.");
+                sys.exit(1);
     if "data" in parsed:
         data = parsed["data"];
+        if method == "json":
+            data = json.loads(data);
     
     scanner = Scanner(url,method,data);
     

